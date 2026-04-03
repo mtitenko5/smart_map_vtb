@@ -5,6 +5,8 @@ import plotly.express as px
 from datetime import datetime, timedelta
 import os
 
+from styles.py import apply_business_styles, apply_styles
+
 # ─── Загрузка данных из CSV (заменяет db.py / queries.py / business_db.py) ───
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -15,7 +17,7 @@ def _load_csv(filename: str) -> pd.DataFrame:
     try:
         return pd.read_csv(path)
     except Exception as e:
-        st.error(f"⚠️ Ошибка загрузки {filename}: {e}")
+        st.error(f"Ошибка загрузки {filename}: {e}")
         return pd.DataFrame()
 
 def _parse_bool(val) -> bool:
@@ -46,7 +48,7 @@ def get_filtered_data(df: pd.DataFrame, category: str, start_date, end_date) -> 
 
 # Клиентские данные
 def load_transactions() -> pd.DataFrame: return _load_csv('transactions.csv')
-def load_partners() -> list: return _load_csv('partners.csv').to_dict('records')
+def load_partners() -> list: return _load_csv('client_partners.csv').to_dict('records')
 
 # Бизнес-данные
 def authenticate_business(login: str) -> dict | None:
@@ -89,19 +91,13 @@ def get_business_metrics(days=30) -> list:
     return df.sort_values('date').tail(days).to_dict('records')
 
 def get_business_reviews(limit=10) -> list:
-    df = _load_csv('client_reviews.csv')
+    df = _load_csv('business_reviews.csv')
     if df.empty: return []
     df['created_at'] = pd.to_datetime(df['created_at'])
     return df.sort_values('created_at', ascending=False).head(limit).to_dict('records')
 
 def get_business_notifications() -> list:
     return _load_csv('notifications.csv').to_dict('records')
-
-# ─── Стили (встроены, чтобы не зависеть от styles.py) ───
-def apply_styles():
-    st.markdown("<style>.card{background:#f8f9fa;padding:12px;border-radius:8px;margin-bottom:10px;border:1px solid #e0e0e0}.badge-discount{background:#e8f5e9;color:#2e7d32;padding:2px 6px;border-radius:4px;font-size:12px;margin-left:8px}</style>", unsafe_allow_html=True)
-def apply_business_styles():
-    st.markdown("<style>.header-gradient{background:linear-gradient(135deg,#002882 0%,#0047bb 100%);color:white;padding:15px;border-radius:8px;margin-bottom:15px}.metric-card{background:#fff;padding:15px;border-radius:8px;border:1px solid #e0e0e0;text-align:center;margin-bottom:10px}.metric-label{font-size:12px;color:#666}.metric-value{font-size:24px;font-weight:bold;color:#002882}.metric-trend{font-size:11px;color:#4caf50;margin-top:5px}.offer-card{background:#fff;padding:15px;border-radius:8px;margin-bottom:10px;border-left:4px solid #002882;box-shadow:0 2px 5px rgba(0,0,0,0.05)}.offer-badge{background:#e8f5e9;color:#2e7d32;padding:4px 8px;border-radius:4px;font-weight:bold}.review-card{background:#fff;padding:15px;border-radius:8px;margin-bottom:10px;border:1px solid #eee}.star-rating{color:#ffc107}</style>", unsafe_allow_html=True)
 
 # ─── Настройки и Сессия ───
 st.set_page_config(layout="wide", page_title="ВТБ Приложение", page_icon="💙")
@@ -151,7 +147,6 @@ if not st.session_state.authenticated:
             with st.expander("Демо-доступ"): st.markdown("**Логин для Кофе Хаус:** `coffee_admin`")
     st.stop()
 
-# ─── Клиентский интерфейс ───
 if st.session_state.user_type == 'client':
     apply_styles()
     with st.sidebar:
@@ -245,7 +240,6 @@ if st.session_state.user_type == 'client':
             with col1: st.metric("Траты", f"{int(df_filtered['amount'].sum()):,} ₽")
             with col2: st.metric("Средний кешбэк (5%)", f"{int(df_filtered['amount'].sum() * 0.05):,} ₽")
 
-# ─── Бизнес-интерфейс ───
 elif st.session_state.user_type == 'business':
     apply_business_styles()
     summary = get_business_summary()
