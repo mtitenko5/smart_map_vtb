@@ -47,7 +47,7 @@ def get_filtered_data(df: pd.DataFrame, category: str, start_date, end_date) -> 
     return df[mask].reset_index(drop=True)
 
 # Клиентские данные
-def load_transactions() -> pd.DataFrame: return _load_csv('transactions.csv')
+def load_transactions() -> pd.DataFrame: return _load_csv('client_transactions.csv')
 def load_partners() -> list: return _load_csv('client_partners.csv').to_dict('records')
 
 # Бизнес-данные
