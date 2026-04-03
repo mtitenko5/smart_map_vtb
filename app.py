@@ -5,7 +5,7 @@ import plotly.express as px
 from datetime import datetime, timedelta
 import os
 
-from styles.py import (apply_business_styles, apply_styles)
+from styles import (apply_business_styles, apply_styles)
 
 # ─── Загрузка данных из CSV (заменяет db.py / queries.py / business_db.py) ───
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
