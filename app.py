@@ -48,7 +48,7 @@ def get_filtered_data(df: pd.DataFrame, category: str, start_date, end_date) -> 
 
 # Клиентские данные
 def load_transactions() -> pd.DataFrame: return _load_csv('client_transactions.csv')
-def load_partners() -> list: return _load_csv('client_partners.csv').to_dict('records')
+def load_partners() -> list: return _load_csv('client_parthers.csv').to_dict('records')
 
 # Бизнес-данные
 def authenticate_business(login: str) -> dict | None:
@@ -99,7 +99,6 @@ def get_business_reviews(limit=10) -> list:
 def get_business_notifications() -> list:
     return _load_csv('notifications.csv').to_dict('records')
 
-# ─── Настройки и Сессия ───
 st.set_page_config(layout="wide", page_title="ВТБ Приложение", page_icon="💙")
 if 'authenticated' not in st.session_state: st.session_state.authenticated = False
 if 'user_type' not in st.session_state: st.session_state.user_type = None
