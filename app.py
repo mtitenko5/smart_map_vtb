@@ -5,7 +5,8 @@ import plotly.express as px
 from datetime import datetime, timedelta
 import os
 from styles import apply_business_styles, apply_styles
-from random import random
+import random
+import string
 
 # ─── Принудительная светлая тема (Переопределяет системные настройки) ───
 def force_light_theme():
@@ -288,6 +289,14 @@ if st.session_state.user_type == 'client':
             </div>
         </div>
         """, unsafe_allow_html=True)
+        if st.button("🎟 Активировать лучшее предложение", key="act_best_offer", use_container_width=True):
+            show_activation_dialog({
+                "shop": "АЗС Shell",
+                "address": "Набережная реки Волковки, 15Б",
+                "offer_description": "Кешбэк 10% на топливо по карте ВТБ",
+                "discount_percent": 10,
+                "valid_until": "2026-05-18"
+            })
         
         col_sav1, col_sav2 = st.columns([2, 1])
         with col_sav1:
@@ -425,37 +434,37 @@ elif st.session_state.user_type == 'business':
         with st.expander("➕ Создать / ✏️ Редактировать предложение", expanded=st.session_state.editing_offer_id is not None):
             editing_id = st.session_state.editing_offer_id
             current = next((o for o in st.session_state.biz_offers if o['id'] == editing_id), {}) if editing_id else {}
-            
-            with st.form("offer_form"):
+        
+            # ⚠️ ВАЖНО: st.form_submit_button ОБЯЗАН находиться ВНУТРИ with st.form()
+            with st.form("offer_form", clear_on_submit=False):
                 c1, c2 = st.columns(2)
                 title = c1.text_input("Название акции", value=current.get("title", ""))
-                category = c2.selectbox("Категория", ["Напитки", "Еда", "Обеды", "Завтраки", "Розница", "Услуги"], index=0 if not current else ["Напитки", "Еда", "Обеды", "Завтраки", "Розница", "Услуги"].index(current.get("category", "Еда")) if current.get("category") in ["Напитки", "Еда", "Обеды", "Завтраки", "Розница", "Услуги"] else 0)
-                
+                category = c2.selectbox("Категория", ["Напитки", "Еда", "Обеды", "Завтраки", "Розница", "Услуги"],
+                                    index=0 if not current else ["Напитки", "Еда", "Обеды", "Завтраки", "Розница", "Услуги"].index(current.get("category", "Еда")))
+            
                 desc = st.text_area("Описание", value=current.get("description", ""))
                 d1, d2, d3 = st.columns(3)
                 discount = d1.number_input("Скидка (%)", min_value=1, max_value=99, value=current.get("discount_percent", 10))
                 min_sum = d2.number_input("Мин. сумма покупки (₽)", min_value=0, value=current.get("min_purchase_amount", 500))
                 valid_until = d3.date_input("Действует до", value=datetime.strptime(current.get("valid_until", "2026-12-31"), "%Y-%m-%d").date() if current.get("valid_until") else datetime.now() + timedelta(days=30))
-                
-                is_active = st.checkbox("Активно", value=current.get("is_active", True) if current else True)
-                # 🔧 ИСПРАВЛЕНИЕ: Только одна кнопка submit внутри формы
-                save_clicked = st.form_submit_button("💾 Сохранить предложение", use_container_width=True)
             
-            # Кнопка "Отменить" вынесена ЗА пределы формы
+                is_active = st.checkbox("Активно", value=current.get("is_active", True) if current else True)
+                submit_clicked = st.form_submit_button("💾 Сохранить предложение", use_container_width=True)
+
             if editing_id:
                 if st.button("❌ Отменить редактирование", use_container_width=True):
                     st.session_state.editing_offer_id = None
                     st.rerun()
-            
-            # Обработка сохранения
-            if save_clicked:
+        
+            # Обработка нажатия
+            if submit_clicked:
                 new_offer = {
-                    "id": editing_id if editing_id else max((o["id"] for o in st.session_state.biz_offers), default=0) + 1,
-                    "title": title, "description": desc, "discount_percent": discount,
-                    "valid_from": datetime.now().strftime("%Y-%m-%d"),
-                    "valid_until": valid_until.strftime("%Y-%m-%d"),
-                    "category": category, "min_purchase_amount": min_sum,
-                    "usage_count": current.get("usage_count", 0), "is_active": is_active
+                "id": editing_id if editing_id else max((o["id"] for o in st.session_state.biz_offers), default=0) + 1,
+                "title": title, "description": desc, "discount_percent": discount,
+                "valid_from": datetime.now().strftime("%Y-%m-%d"),
+                "valid_until": valid_until.strftime("%Y-%m-%d"),
+                "category": category, "min_purchase_amount": min_sum,
+                "usage_count": current.get("usage_count", 0), "is_active": is_active
                 }
                 if editing_id:
                     idx = next((i for i, o in enumerate(st.session_state.biz_offers) if o["id"] == editing_id), None)
