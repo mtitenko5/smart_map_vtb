@@ -4,18 +4,14 @@ import pandas as pd
 import plotly.express as px
 from datetime import datetime, timedelta
 import os
+from styles import apply_business_styles, apply_styles
 
-from styles import (apply_business_styles, apply_styles)
-
-# ─── Загрузка данных из CSV (заменяет db.py / queries.py / business_db.py) ───
+# ─── Загрузка данных из CSV ───
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
 def _load_csv(filename: str) -> pd.DataFrame:
     path = os.path.join(BASE_DIR, filename)
-    if not os.path.exists(path):
-        return pd.DataFrame()
-    try:
-        return pd.read_csv(path)
+    if not os.path.exists(path): return pd.DataFrame()
+    try: return pd.read_csv(path)
     except Exception as e:
         st.error(f"Ошибка загрузки {filename}: {e}")
         return pd.DataFrame()
@@ -27,10 +23,8 @@ def _parse_bool(val) -> bool:
 
 def get_offer_status(valid_until_str):
     if pd.isna(valid_until_str): return 'unknown', 'Неизвестно'
-    try:
-        exp_date = pd.to_datetime(valid_until_str).date()
+    try: exp_date = pd.to_datetime(valid_until_str).date()
     except Exception: return 'unknown', 'Неизвестно'
-    
     today = datetime.now().date()
     days_left = (exp_date - today).days
     if days_left < 0: return 'expired', f'Истёк {abs(days_left)} дн. назад'
@@ -62,7 +56,6 @@ def get_business_summary() -> dict:
     df_metrics = _load_csv('business_metrics.csv')
     if df_user.empty:
         return {'business_name': 'Бизнес', 'rating': 0.0, 'total_reviews': 0, 'new_clients': 0, 'revenue': 0.0, 'transactions': 0, 'avg_check': 0.0}
-    
     user = df_user.iloc[0].to_dict()
     if df_metrics.empty:
         user.update({'new_clients': 0, 'revenue': 0.0, 'transactions': 0, 'avg_check': 0.0})
@@ -99,10 +92,18 @@ def get_business_reviews(limit=10) -> list:
 def get_business_notifications() -> list:
     return _load_csv('notifications.csv').to_dict('records')
 
+# ─── Инициализация состояния приложения ───
 st.set_page_config(layout="wide", page_title="ВТБ Приложение", page_icon="💙")
 if 'authenticated' not in st.session_state: st.session_state.authenticated = False
 if 'user_type' not in st.session_state: st.session_state.user_type = None
 if 'biz_auth_user' not in st.session_state: st.session_state.biz_auth_user = None
+
+# Инициализация офферов в session_state для CRUD
+if 'biz_offers' not in st.session_state:
+    st.session_state.biz_offers = get_business_offers(active_only=False)
+
+if 'editing_offer_id' not in st.session_state:
+    st.session_state.editing_offer_id = None
 
 def login_client():
     if st.session_state.get('username') == 'bubliki':
@@ -120,6 +121,23 @@ def logout():
     st.session_state.authenticated = False; st.session_state.user_type = None
     st.session_state.biz_auth_user = None; st.rerun()
 
+# ─── Генерация метрик эффективности для оффера (демо-логика) ───
+def get_offer_performance(offer: dict) -> dict:
+    discount = float(offer.get('discount_percent', 0))
+    base_views = 1200 if discount >= 15 else 800
+    base_redemptions = int(base_views * (discount / 100) * 0.65)
+    base_new_clients = int(base_redemptions * 0.35)
+    avg_check = 450 + (discount * 12)
+    revenue = int(base_redemptions * avg_check)
+    return {
+        "views": base_views,
+        "redemptions": base_redemptions,
+        "new_clients": base_new_clients,
+        "revenue": revenue,
+        "conversion": round((base_redemptions / base_views) * 100, 1),
+        "roi": round(((revenue - (base_redemptions * avg_check * discount / 100)) / (base_redemptions * avg_check * discount / 100)) * 100, 0)
+    }
+
 # ─── Экран входа ───
 if not st.session_state.authenticated:
     apply_business_styles()
@@ -127,15 +145,15 @@ if not st.session_state.authenticated:
     with col_login:
         user_mode = st.radio("Выберите тип входа:", ["Я клиент", "Я партнер"], horizontal=True, label_visibility="collapsed")
         if user_mode == "Я клиент":
-            st.markdown('<div class="header-gradient"><h2 style="margin:0;">Умная карта ВТБ</h2></div>', unsafe_allow_html=True)
-            st.markdown("<div style='text-align:left;font-size:12px;color:#666;margin:20px 0;'>☑️ Я согласен на обработку персональных данных и доступ к информации о транзакциях</div>", unsafe_allow_html=True)
+            st.markdown('<h2 style="text-align:center;color:#002882;">Умная карта ВТБ</h2>', unsafe_allow_html=True)
+            st.markdown("☑️ Я согласен на обработку персональных данных и доступ к информации о транзакциях", unsafe_allow_html=True)
             with st.form("client_login_form"):
                 st.text_input("Логин", key="username", placeholder="Введите логин")
                 submit = st.form_submit_button("Войти", use_container_width=True)
                 if submit: login_client()
-            with st.expander("Демо-доступ"): st.markdown("**Логин для Марины:** `bubliki`")
+            with st.expander("Демо-доступ"): st.markdown("Логин для Марины: `bubliki`")
         else:
-            st.markdown('<div class="header-gradient"><h2 style="margin:0;">ВТБ - банк для бизнеса</h2></div>', unsafe_allow_html=True)
+            st.markdown('<h2 style="text-align:center;color:#002882;">ВТБ - банк для бизнеса</h2>', unsafe_allow_html=True)
             with st.form("biz_login_form"):
                 st.text_input("Логин", key="biz_login_field", placeholder="Введите логин")
                 submit = st.form_submit_button("Войти", use_container_width=True)
@@ -143,9 +161,10 @@ if not st.session_state.authenticated:
                     login = st.session_state.get('biz_login_field')
                     if login: login_business(login)
                     else: st.error("Введите логин")
-            with st.expander("Демо-доступ"): st.markdown("**Логин для Кофе Хаус:** `coffee_admin`")
+            with st.expander("Демо-доступ"): st.markdown("Логин для Кофе Хаус: `coffee_admin`")
     st.stop()
 
+# ─── Клиентский интерфейс ───
 if st.session_state.user_type == 'client':
     apply_styles()
     with st.sidebar:
@@ -239,11 +258,13 @@ if st.session_state.user_type == 'client':
             with col1: st.metric("Траты", f"{int(df_filtered['amount'].sum()):,} ₽")
             with col2: st.metric("Средний кешбэк (5%)", f"{int(df_filtered['amount'].sum() * 0.05):,} ₽")
 
+# ─── Бизнес-интерфейс ───
 elif st.session_state.user_type == 'business':
     apply_business_styles()
     summary = get_business_summary()
+    
     with st.sidebar:
-        st.markdown(f"""☕<br>{summary['business_name']}<br>Средний бизнес<br>⭐ {summary['rating']} ({summary['total_reviews']} отзывов)""", unsafe_allow_html=True)
+        st.markdown(f"""☕ {summary['business_name']} Средний бизнес ⭐ {summary['rating']} ({summary['total_reviews']} отзывов)""", unsafe_allow_html=True)
         st.markdown("---")
         menu = st.radio("Меню", ["Дашборд", "Предложения", "Отзывы", "Уведомления"], label_visibility="collapsed")
         st.markdown("---")
@@ -252,13 +273,34 @@ elif st.session_state.user_type == 'business':
 
     if menu == "Дашборд":
         st.markdown('<div class="header-gradient"><h2 style="margin:0;">Панель управления</h2><p style="margin:5px 0 0 0;">Обзор показателей за 30 дней</p></div>', unsafe_allow_html=True)
+        
+        # Основные метрики
         col1, col2, col3, col4 = st.columns(4)
         with col1: st.markdown(f"""<div class="metric-card"><div class="metric-label">Новых клиентов</div><div class="metric-value">{int(summary['new_clients']):,}</div><div class="metric-trend">↑ 23% за месяц</div></div>""", unsafe_allow_html=True)
         with col2: st.markdown(f"""<div class="metric-card"><div class="metric-label">Выручка</div><div class="metric-value">₽{int(summary['revenue']):,}</div><div class="metric-trend">↑ 15% за месяц</div></div>""", unsafe_allow_html=True)
         with col3: st.markdown(f"""<div class="metric-card"><div class="metric-label">Транзакций</div><div class="metric-value">{int(summary['transactions']):,}</div><div class="metric-trend">↑ 12% за месяц</div></div>""", unsafe_allow_html=True)
         with col4: st.markdown(f"""<div class="metric-card"><div class="metric-label">Средний чек</div><div class="metric-value">₽{int(summary['avg_check']):,}</div><div class="metric-trend">↑ 5% за месяц</div></div>""", unsafe_allow_html=True)
-        st.markdown("---")
 
+        # 💡 Блок выгоды от партнёрства с банком (ЗАПРОС 2)
+        st.markdown("---")
+        st.markdown("### 💡 Ваша выгода от сотрудничества с ВТБ")
+        bank_metrics = {
+            "🤝 Клиентов привлечено через ВТБ": f"{int(summary['new_clients'] * 0.68):,}",
+            "💳 Выплачено кешбэка клиентам": f"₽{int(summary['revenue'] * 0.04):,}",
+            "📈 Рост среднего чека по акциям": "+18.4%",
+            "📉 Экономия на внешней рекламе": f"₽{int(summary['revenue'] * 0.12):,}",
+            "🔄 Возвратность клиентов (LTV)": "72%",
+            "🏆 Позиция в рейтинге партнёров": "Top 12%"
+        }
+        cols_bm = st.columns(3)
+        for i, (label, value) in enumerate(bank_metrics.items()):
+            with cols_bm[i % 3]:
+                st.markdown(f"""<div class="card" style="text-align:center; border-left: 4px solid #0055b8;">
+                <div style="font-size:14px; color:#666; margin-bottom:5px;">{label}</div>
+                <div style="font-size:20px; font-weight:bold; color:#002882;">{value}</div>
+                </div>""", unsafe_allow_html=True)
+
+        st.markdown("---")
         col_chart1, col_chart2 = st.columns(2)
         with col_chart1:
             st.markdown("### Выручка по дням")
@@ -277,10 +319,81 @@ elif st.session_state.user_type == 'business':
                 st.plotly_chart(fig, use_container_width=True)
 
     elif menu == "Предложения":
-        st.markdown('<div class="header-gradient"><h2 style="margin:0;">Активные предложения</h2><p style="margin:5px 0 0 0;">Управление предложениями для клиентов ВТБ</p></div>', unsafe_allow_html=True)
-        offers = get_business_offers(active_only=True)
-        for offer in offers:
-            st.markdown(f"""<div class="offer-card"><div style="display:flex;justify-content:space-between;align-items:center;"><div><h3 style="margin:0;color:#002882;">{offer['title']}</h3><p style="margin:8px 0;color:#666;">{offer['description']}</p></div><div style="text-align:right;"><span class="offer-badge">-{offer['discount_percent']}%</span></div></div><div style="margin-top:15px;padding-top:15px;border-top:1px solid #e0e0e0;font-size:13px;color:#888;">🧁 {offer['category']} | 💰 От {offer['min_purchase_amount']} руб.</div></div>""", unsafe_allow_html=True)
+        st.markdown('<div class="header-gradient"><h2 style="margin:0;">Управление предложениями</h2><p style="margin:5px 0 0 0;">Создание, редактирование и аналитика эффективности</p></div>', unsafe_allow_html=True)
+        
+        # ЗАПРОС 1: Форма создания/редактирования
+        with st.expander("➕ Создать / ✏️ Редактировать предложение", expanded=st.session_state.editing_offer_id is not None):
+            editing_id = st.session_state.editing_offer_id
+            current = next((o for o in st.session_state.biz_offers if o['id'] == editing_id), {}) if editing_id else {}
+            
+            with st.form("offer_form"):
+                c1, c2 = st.columns(2)
+                title = c1.text_input("Название акции", value=current.get("title", ""))
+                category = c2.selectbox("Категория", ["Напитки", "Еда", "Обеды", "Завтраки", "Розница", "Услуги"], index=0 if not current else ["Напитки", "Еда", "Обеды", "Завтраки", "Розница", "Услуги"].index(current.get("category", "Еда")) if current.get("category") in ["Напитки", "Еда", "Обеды", "Завтраки", "Розница", "Услуги"] else 0)
+                
+                desc = st.text_area("Описание", value=current.get("description", ""))
+                d1, d2, d3 = st.columns(3)
+                discount = d1.number_input("Скидка (%)", min_value=1, max_value=99, value=current.get("discount_percent", 10))
+                min_sum = d2.number_input("Мин. сумма покупки (₽)", min_value=0, value=current.get("min_purchase_amount", 500))
+                valid_until = d3.date_input("Действует до", value=datetime.strptime(current.get("valid_until", "2026-12-31"), "%Y-%m-%d").date() if current.get("valid_until") else datetime.now() + timedelta(days=30))
+                
+                is_active = st.checkbox("Активно", value=current.get("is_active", True) if current else True)
+                
+                btn_col1, btn_col2 = st.columns([3, 1])
+                submit = btn_col1.form_submit_button("💾 Сохранить предложение", use_container_width=True)
+                if editing_id: btn_col2.form_submit_button("❌ Отменить", use_container_width=True, on_click=lambda: setattr(st.session_state, 'editing_offer_id', None))
+                
+                if submit:
+                    new_offer = {
+                        "id": editing_id if editing_id else max((o["id"] for o in st.session_state.biz_offers), default=0) + 1,
+                        "title": title, "description": desc, "discount_percent": discount,
+                        "valid_from": datetime.now().strftime("%Y-%m-%d"),
+                        "valid_until": valid_until.strftime("%Y-%m-%d"),
+                        "category": category, "min_purchase_amount": min_sum,
+                        "usage_count": current.get("usage_count", 0), "is_active": is_active
+                    }
+                    if editing_id:
+                        idx = next((i for i, o in enumerate(st.session_state.biz_offers) if o["id"] == editing_id), None)
+                        if idx is not None: st.session_state.biz_offers[idx] = new_offer
+                    else:
+                        st.session_state.biz_offers.append(new_offer)
+                    st.session_state.editing_offer_id = None
+                    st.success("✅ Предложение сохранено!")
+                    st.rerun()
+
+        st.markdown("### 📊 Ваши активные предложения и их эффективность")
+        offers = [o for o in st.session_state.biz_offers if o.get("is_active", False)]
+        
+        if not offers:
+            st.info("📭 Пока нет активных предложений. Создайте первое выше 👆")
+        else:
+            for offer in offers:
+                status, status_text = get_offer_status(offer['valid_until'])
+                perf = get_offer_performance(offer)
+                
+                col_main, col_actions = st.columns([4, 1])
+                with col_main:
+                    st.markdown(f"""<div class="offer-card" style="margin-bottom:15px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <div><h3 style="margin:0;color:#002882;">{offer['title']}</h3><p style="margin:8px 0;color:#666;">{offer['description']}</p></div>
+                        <span class="offer-badge">-{offer['discount_percent']}%</span>
+                    </div>
+                    <div style="margin-top:15px;padding-top:15px;border-top:1px solid #e0e0e0;font-size:13px;color:#888;">
+                    🧁 {offer['category']} | 💰 От {offer['min_purchase_amount']} руб. | 📅 {status_text}
+                    </div>
+                    </div>""", unsafe_allow_html=True)
+                    
+                    # Метрики эффективности предложения
+                    mc1, mc2, mc3, mc4, mc5 = st.columns(5)
+                    mc1.metric("👁 Показов", f"{perf['views']:,}")
+                    mc2.metric("✅ Активаций", f"{perf['redemptions']:,}")
+                    mc3.metric("🆕 Новых клиентов", f"+{perf['new_clients']}")
+                    mc4.metric("💰 Оборот", f"₽{perf['revenue']:,}")
+                    mc5.metric("📈 Конверсия", f"{perf['conversion']}%")
+                
+                with col_actions:
+                    st.button("✏️", key=f"edit_{offer['id']}", help="Редактировать", use_container_width=True, on_click=lambda oid=offer['id']: setattr(st.session_state, 'editing_offer_id', oid))
+                    st.button("🗑", key=f"del_{offer['id']}", help="Удалить", use_container_width=True, on_click=lambda oid=offer['id']: setattr(st.session_state, 'biz_offers', [o for o in st.session_state.biz_offers if o['id'] != oid]))
 
     elif menu == "Отзывы":
         st.markdown('<div class="header-gradient"><h2 style="margin:0;">⭐ Отзывы клиентов</h2><p style="margin:5px 0 0 0;">Рейтинг и обратная связь</p></div>', unsafe_allow_html=True)
