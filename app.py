@@ -430,41 +430,55 @@ elif st.session_state.user_type == 'business':
     elif menu == "Предложения":
         st.markdown('<div class="header-gradient"><h2 style="margin:0;">Управление предложениями</h2><p style="margin:5px 0 0 0;">Создание, редактирование и аналитика эффективности</p></div>', unsafe_allow_html=True)
         
-       # ЗАПРОС 1: Исправлена форма (убран on_click у form_submit_button)
         with st.expander("➕ Создать / ✏️ Редактировать предложение", expanded=st.session_state.editing_offer_id is not None):
             editing_id = st.session_state.editing_offer_id
             current = next((o for o in st.session_state.biz_offers if o['id'] == editing_id), {}) if editing_id else {}
-        
-            # ⚠️ ВАЖНО: st.form_submit_button ОБЯЗАН находиться ВНУТРИ with st.form()
+            
+            # 🔧 Безопасное приведение типов из CSV/Session State
+            cur_discount = int(float(current.get("discount_percent", 10)))
+            cur_min_sum = int(float(current.get("min_purchase_amount", 500)))
+            
+            try:
+                cur_valid_until = datetime.strptime(str(current.get("valid_until", "2026-12-31")), "%Y-%m-%d").date()
+            except Exception:
+                cur_valid_until = (datetime.now() + timedelta(days=30)).date()
+
+            # ✅ Форма теперь гарантированно отрендерится полностью
             with st.form("offer_form", clear_on_submit=False):
                 c1, c2 = st.columns(2)
                 title = c1.text_input("Название акции", value=current.get("title", ""))
-                category = c2.selectbox("Категория", ["Напитки", "Еда", "Обеды", "Завтраки", "Розница", "Услуги"],
-                                    index=0 if not current else ["Напитки", "Еда", "Обеды", "Завтраки", "Розница", "Услуги"].index(current.get("category", "Еда")))
-            
+                
+                cat_list = ["Напитки", "Еда", "Обеды", "Завтраки", "Розница", "Услуги"]
+                default_cat = current.get("category", "Еда")
+                cat_idx = cat_list.index(default_cat) if default_cat in cat_list else 0
+                category = c2.selectbox("Категория", cat_list, index=cat_idx if current else 0)
+
                 desc = st.text_area("Описание", value=current.get("description", ""))
                 d1, d2, d3 = st.columns(3)
-                discount = d1.number_input("Скидка (%)", min_value=1, max_value=99, value=current.get("discount_percent", 10))
-                min_sum = d2.number_input("Мин. сумма покупки (₽)", min_value=0, value=current.get("min_purchase_amount", 500))
-                valid_until = d3.date_input("Действует до", value=datetime.strptime(current.get("valid_until", "2026-12-31"), "%Y-%m-%d").date() if current.get("valid_until") else datetime.now() + timedelta(days=30))
-            
-                is_active = st.checkbox("Активно", value=current.get("is_active", True) if current else True)
+                discount = d1.number_input("Скидка (%)", min_value=1, max_value=99, value=cur_discount, step=1)
+                min_sum = d2.number_input("Мин. сумма покупки (₽)", min_value=0, value=cur_min_sum, step=10)
+                valid_until = d3.date_input("Действует до", value=cur_valid_until)
+
+                is_active_val = current.get("is_active", True)
+                is_active = st.checkbox("Активно", value=bool(is_active_val) if isinstance(is_active_val, bool) else str(is_active_val).lower() in ('true', '1', 'yes'))
+                
+                # Единственная кнопка отправки внутри формы
                 submit_clicked = st.form_submit_button("💾 Сохранить предложение", use_container_width=True)
 
+            # Кнопка отмены строго ЗА пределами формы
             if editing_id:
                 if st.button("❌ Отменить редактирование", use_container_width=True):
                     st.session_state.editing_offer_id = None
                     st.rerun()
-        
-            # Обработка нажатия
+            
             if submit_clicked:
                 new_offer = {
-                "id": editing_id if editing_id else max((o["id"] for o in st.session_state.biz_offers), default=0) + 1,
-                "title": title, "description": desc, "discount_percent": discount,
-                "valid_from": datetime.now().strftime("%Y-%m-%d"),
-                "valid_until": valid_until.strftime("%Y-%m-%d"),
-                "category": category, "min_purchase_amount": min_sum,
-                "usage_count": current.get("usage_count", 0), "is_active": is_active
+                    "id": editing_id if editing_id else max((o["id"] for o in st.session_state.biz_offers), default=0) + 1,
+                    "title": title, "description": desc, "discount_percent": discount,
+                    "valid_from": datetime.now().strftime("%Y-%m-%d"),
+                    "valid_until": valid_until.strftime("%Y-%m-%d"),
+                    "category": category, "min_purchase_amount": min_sum,
+                    "usage_count": current.get("usage_count", 0), "is_active": is_active
                 }
                 if editing_id:
                     idx = next((i for i, o in enumerate(st.session_state.biz_offers) if o["id"] == editing_id), None)
