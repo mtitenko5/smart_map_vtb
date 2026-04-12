@@ -466,7 +466,7 @@ elif st.session_state.user_type == 'business':
                 st.success("✅ Предложение сохранено!")
                 st.rerun()
 
-        st.markdown("###Ваши активные предложения и их эффективность")
+        st.markdown("### Ваши активные предложения и их эффективность")
         offers = [o for o in st.session_state.biz_offers if o.get("is_active", False)]
         
         if not offers:
