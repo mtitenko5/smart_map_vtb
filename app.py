@@ -198,7 +198,7 @@ if not st.session_state.authenticated:
             st.markdown('<h2 style="text-align:center;color:#002882;margin-bottom:5px;">ВТБ - банк для бизнеса</h2>', unsafe_allow_html=True)
             st.markdown("""
             <div style="text-align:center; padding: 15px; background: rgba(255,255,255,0.7); border-radius: 12px; margin-bottom: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
-            Привлекайте новых клиентов и увеличивайте выручку с сервисом «Умная карта» от ВТБ.<br/>
+            Привлекайте новых клиентов и увеличивайте выручку с сервисом «Умная карта» от ВТБ<br/>
             </div>
             """, unsafe_allow_html=True)
             with st.form("biz_login_form"):
@@ -226,33 +226,6 @@ if st.session_state.user_type == 'client':
     tab = st.radio("  ", ["🎁 Выгода рядом", "🗺 Мои траты", "🔔 Уведомления"], horizontal=True)
 
     if tab == "🗺 Мои траты":
-        # 💡 Лучшее предложение дня + Потенциальная экономия (ЗАПРОС 4)
-        st.markdown("""
-        <div class="card" style="background: linear-gradient(135deg, #e3f2fd 0%, #ffffff 100%); border-left: 5px solid #0055b8; padding: 20px; margin-bottom: 15px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-                <div>
-                    <h3 style="margin:0; color:#002882;">⛽ Лучшее предложение дня: АЗС Shell</h3>
-                    <p style="margin:5px 0; color:#555;">Кешбэк 10% на топливо по карте ВТБ • Набережная реки Волковки, 15Б</p>
-                </div>
-                <span class="badge badge-discount" style="background:#0055b8; font-size:16px; padding:8px 16px;">-10%</span>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        col_sav1, col_sav2 = st.columns([2, 1])
-        with col_sav1:
-            st.caption("📅 Расчёт за текущий месяц на основе ваших транзакций и активных партнёрских скидок")
-        with col_sav2:
-            # Динамический расчёт потенциальной экономии
-            potential_savings = 0.0
-            if not df.empty and not df['category'].empty:
-                for _, offer in enumerate(load_partners()):
-                    if get_offer_status(offer['valid_until'])[0] != 'expired':
-                        mask = df['category'].str.contains(offer['category'], case=False, na=False)
-                        cat_amount = df[mask]['amount'].sum() if mask.any() else 0
-                        potential_savings += cat_amount * (float(offer['discount_percent']) / 100)
-            st.metric("💰 Потенциальная экономия", f"₽{int(potential_savings):,}")
-
         st.markdown("## 💙 Карта моих трат")
         categories = ["Все"] + list(df["category"].unique()) if not df.empty else ["Все"]
         col1, col2, col3 = st.columns(3)
@@ -282,6 +255,32 @@ if st.session_state.user_type == 'client':
 
     elif tab == "🎁 Выгода рядом":
         st.markdown("## 🎁 Выгодные предложения партнёров")
+        #Лучшее предложение дня + Потенциальная экономия
+        st.markdown("""
+        <div class="card" style="background: linear-gradient(135deg, #e3f2fd 0%, #ffffff 100%); border-left: 5px solid #0055b8; padding: 20px; margin-bottom: 15px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                <div>
+                    <h3 style="margin:0; color:#002882;">⛽ Лучшее предложение дня: АЗС Shell</h3>
+                    <p style="margin:5px 0; color:#555;">Кешбэк 10% на топливо по карте ВТБ • Набережная реки Волковки, 15Б</p>
+                </div>
+                <span class="badge badge-discount" style="background:#0055b8; font-size:16px; padding:8px 16px;">-10%</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        col_sav1, col_sav2 = st.columns([2, 1])
+        with col_sav1:
+            st.caption("📅 Расчёт за текущий месяц на основе ваших транзакций и активных партнёрских скидок")
+        with col_sav2:
+            # Динамический расчёт потенциальной экономии
+            potential_savings = 0.0
+            if not df.empty and not df['category'].empty:
+                for _, offer in enumerate(load_partners()):
+                    if get_offer_status(offer['valid_until'])[0] != 'expired':
+                        mask = df['category'].str.contains(offer['category'], case=False, na=False)
+                        cat_amount = df[mask]['amount'].sum() if mask.any() else 0
+                        potential_savings += cat_amount * (float(offer['discount_percent']) / 100)
+            st.metric("💰 Потенциальная экономия", f"₽{int(potential_savings):,}")
         all_offers = load_partners()
         if all_offers:
             active_offers = [o for o in all_offers if get_offer_status(o['valid_until'])[0] != "expired"]
