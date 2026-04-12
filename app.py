@@ -5,6 +5,7 @@ import plotly.express as px
 from datetime import datetime, timedelta
 import os
 from styles import apply_business_styles, apply_styles
+from random import random
 
 # ─── Принудительная светлая тема (Переопределяет системные настройки) ───
 def force_light_theme():
