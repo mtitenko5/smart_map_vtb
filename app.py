@@ -143,6 +143,27 @@ if 'biz_offers' not in st.session_state:
 if 'editing_offer_id' not in st.session_state:
     st.session_state.editing_offer_id = None
 
+#Диалог активации предложения
+@st.dialog("🎁 Активация предложения", width="large")
+def show_activation_dialog(offer: dict):
+    code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
+    
+    st.markdown(f"### 🏬 {offer.get('shop', 'Партнёр')}")
+    st.info(f"📍 {offer.get('address', 'Адрес не указан')}")
+    st.markdown(f"**📄 Описание:** {offer.get('offer_description', 'Без описания')}")
+    
+    col_d1, col_d2 = st.columns(2)
+    with col_d1: st.metric("💰 Ваша выгода", f"-{offer.get('discount_percent', 0)}%")
+    with col_d2: st.metric("⏰ Действует до", offer.get('valid_until', '—'))
+    
+    st.divider()
+    st.success("🔑 Покажите этот код кассиру для получения скидки:")
+    st.code(code, language=None)
+    st.caption("Код генерируется один раз. Сделайте скриншот или скопируйте его.")
+    
+    if st.button("👍 Понятно, закрыть", use_container_width=True):
+        st.rerun()
+
 def login_client():
     if st.session_state.get('username') == 'bubliki':
         st.session_state.authenticated = True; st.session_state.user_type = 'client'; st.rerun()
@@ -320,6 +341,10 @@ if st.session_state.user_type == 'client':
                     <div style="margin-top:10px;">🎁 {offer['offer_description']}</div>
                     <div style="margin-top:5px;font-size:12px;color:#888;">📍 {offer['address']} | ⏰ До: {offer['valid_until']}</div>
                     </div>""", unsafe_allow_html=True)
+
+                    # Кнопка активации с вызовом диалога
+                    if st.button("🎟 Активировать предложение", key=f"act_{offer['id']}", use_container_width=True):
+                        show_activation_dialog(offer)
         else: st.info("📭 В данный момент нет активных предложений")
 
     elif tab == "🔔 Уведомления":
@@ -395,15 +420,15 @@ elif st.session_state.user_type == 'business':
     elif menu == "Предложения":
         st.markdown('<div class="header-gradient"><h2 style="margin:0;">Управление предложениями</h2><p style="margin:5px 0 0 0;">Создание, редактирование и аналитика эффективности</p></div>', unsafe_allow_html=True)
         
-        # ЗАПРОС 1: Форма создания/редактирования
-        with st.expander("➕ Создать предложение", expanded=st.session_state.editing_offer_id is not None):
+       # ЗАПРОС 1: Исправлена форма (убран on_click у form_submit_button)
+        with st.expander("➕ Создать / ✏️ Редактировать предложение", expanded=st.session_state.editing_offer_id is not None):
             editing_id = st.session_state.editing_offer_id
             current = next((o for o in st.session_state.biz_offers if o['id'] == editing_id), {}) if editing_id else {}
             
             with st.form("offer_form"):
                 c1, c2 = st.columns(2)
                 title = c1.text_input("Название акции", value=current.get("title", ""))
-                category = c2.selectbox("Категория", ["Напитки", "Еда", "Обеды", "Завтраки", "Услуги"], index=0 if not current else ["Напитки", "Еда", "Обеды", "Завтраки", "Услуги"].index(current.get("category", "Еда")) if current.get("category") in ["Напитки", "Еда", "Обеды", "Завтраки", "Услуги"] else 0)
+                category = c2.selectbox("Категория", ["Напитки", "Еда", "Обеды", "Завтраки", "Розница", "Услуги"], index=0 if not current else ["Напитки", "Еда", "Обеды", "Завтраки", "Розница", "Услуги"].index(current.get("category", "Еда")) if current.get("category") in ["Напитки", "Еда", "Обеды", "Завтраки", "Розница", "Услуги"] else 0)
                 
                 desc = st.text_area("Описание", value=current.get("description", ""))
                 d1, d2, d3 = st.columns(3)
@@ -412,28 +437,33 @@ elif st.session_state.user_type == 'business':
                 valid_until = d3.date_input("Действует до", value=datetime.strptime(current.get("valid_until", "2026-12-31"), "%Y-%m-%d").date() if current.get("valid_until") else datetime.now() + timedelta(days=30))
                 
                 is_active = st.checkbox("Активно", value=current.get("is_active", True) if current else True)
-                
-                btn_col1, btn_col2 = st.columns([3, 1])
-                submit = btn_col1.form_submit_button("💾 Сохранить предложение", use_container_width=True)
-                if editing_id: btn_col2.form_submit_button("❌ Отменить", use_container_width=True, on_click=lambda: setattr(st.session_state, 'editing_offer_id', None))
-                
-                if submit:
-                    new_offer = {
-                        "id": editing_id if editing_id else max((o["id"] for o in st.session_state.biz_offers), default=0) + 1,
-                        "title": title, "description": desc, "discount_percent": discount,
-                        "valid_from": datetime.now().strftime("%Y-%m-%d"),
-                        "valid_until": valid_until.strftime("%Y-%m-%d"),
-                        "category": category, "min_purchase_amount": min_sum,
-                        "usage_count": current.get("usage_count", 0), "is_active": is_active
-                    }
-                    if editing_id:
-                        idx = next((i for i, o in enumerate(st.session_state.biz_offers) if o["id"] == editing_id), None)
-                        if idx is not None: st.session_state.biz_offers[idx] = new_offer
-                    else:
-                        st.session_state.biz_offers.append(new_offer)
+                # 🔧 ИСПРАВЛЕНИЕ: Только одна кнопка submit внутри формы
+                save_clicked = st.form_submit_button("💾 Сохранить предложение", use_container_width=True)
+            
+            # Кнопка "Отменить" вынесена ЗА пределы формы
+            if editing_id:
+                if st.button("❌ Отменить редактирование", use_container_width=True):
                     st.session_state.editing_offer_id = None
-                    st.success("✅ Предложение сохранено!")
                     st.rerun()
+            
+            # Обработка сохранения
+            if save_clicked:
+                new_offer = {
+                    "id": editing_id if editing_id else max((o["id"] for o in st.session_state.biz_offers), default=0) + 1,
+                    "title": title, "description": desc, "discount_percent": discount,
+                    "valid_from": datetime.now().strftime("%Y-%m-%d"),
+                    "valid_until": valid_until.strftime("%Y-%m-%d"),
+                    "category": category, "min_purchase_amount": min_sum,
+                    "usage_count": current.get("usage_count", 0), "is_active": is_active
+                }
+                if editing_id:
+                    idx = next((i for i, o in enumerate(st.session_state.biz_offers) if o["id"] == editing_id), None)
+                    if idx is not None: st.session_state.biz_offers[idx] = new_offer
+                else:
+                    st.session_state.biz_offers.append(new_offer)
+                st.session_state.editing_offer_id = None
+                st.success("✅ Предложение сохранено!")
+                st.rerun()
 
         st.markdown("###Ваши активные предложения и их эффективность")
         offers = [o for o in st.session_state.biz_offers if o.get("is_active", False)]
