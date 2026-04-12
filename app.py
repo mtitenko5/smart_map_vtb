@@ -184,8 +184,7 @@ if not st.session_state.authenticated:
             st.markdown('<h2 style="text-align:center;color:#002882;margin-bottom:5px;">Умная карта ВТБ</h2>', unsafe_allow_html=True)
             st.markdown("""
             <div style="text-align:center; padding: 15px; background: rgba(255,255,255,0.7); border-radius: 12px; margin-bottom: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
-            Находите на карте выгодные предложения партнёров, подобранные специально для Вас.<br/>
-            Экономьте на покупках с персональными рекомендациями и кешбэком!
+            Находите на карте выгодные предложения партнёров, подобранные специально для Вас, и экономьте на повседневных покупках<br/>
             </div>
             """, unsafe_allow_html=True)
             with st.form("client_login_form"):
