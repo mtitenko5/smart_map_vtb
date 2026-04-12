@@ -6,6 +6,44 @@ from datetime import datetime, timedelta
 import os
 from styles import apply_business_styles, apply_styles
 
+# ─── Принудительная светлая тема (Переопределяет системные настройки) ───
+def force_light_theme():
+    st.markdown("""
+    <style>
+    :root {
+        --bg-main: #f6faff;
+        --bg-card: #ffffff;
+        --text-main: #111827;
+        --text-muted: #6b7280;
+        --border-color: #e5e7eb;
+    }
+    html, body, .stApp, .stApp > header, .stApp > div, .st-emotion-cache-1dp5vir, .st-emotion-cache-1l4v61, [data-testid="stSidebar"] {
+        background-color: var(--bg-main) !important;
+        color: var(--text-main) !important;
+    }
+    @media (prefers-color-scheme: dark) {
+        body, .stApp, .st-emotion-cache-1dp5vir, .st-emotion-cache-1l4v61 {
+            background-color: var(--bg-main) !important;
+            color: var(--text-main) !important;
+        }
+        .stTextInput > div > div > input, .stNumberInput > div > div > input, .stTextArea textarea {
+            background-color: var(--bg-card) !important;
+            color: var(--text-main) !important;
+            border: 1px solid var(--border-color) !important;
+        }
+        .stSelectbox > div > div > div, .stDateInput > div > div > div > div, .stCheckbox > label > div {
+            background-color: var(--bg-card) !important;
+            color: var(--text-main) !important;
+        }
+    }
+    /* Бейджи */
+    .badge { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; margin-right: 6px; vertical-align: middle; }
+    .badge-fav { background: #e3f2fd !important; color: #1976d2 !important; }
+    .badge-new { background: #e8f5e9 !important; color: #2e7d32 !important; }
+    .badge-discount { background: linear-gradient(90deg, #5aa9ff, #7fc8ff); color: white; }
+    </style>
+    """, unsafe_allow_html=True)
+
 # ─── Загрузка данных из CSV ───
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 def _load_csv(filename: str) -> pd.DataFrame:
@@ -94,14 +132,14 @@ def get_business_notifications() -> list:
 
 # ─── Инициализация состояния приложения ───
 st.set_page_config(layout="wide", page_title="ВТБ Приложение", page_icon="💙")
+force_light_theme()
+
 if 'authenticated' not in st.session_state: st.session_state.authenticated = False
 if 'user_type' not in st.session_state: st.session_state.user_type = None
 if 'biz_auth_user' not in st.session_state: st.session_state.biz_auth_user = None
 
-# Инициализация офферов в session_state для CRUD
 if 'biz_offers' not in st.session_state:
     st.session_state.biz_offers = get_business_offers(active_only=False)
-
 if 'editing_offer_id' not in st.session_state:
     st.session_state.editing_offer_id = None
 
@@ -130,11 +168,8 @@ def get_offer_performance(offer: dict) -> dict:
     avg_check = 450 + (discount * 12)
     revenue = int(base_redemptions * avg_check)
     return {
-        "views": base_views,
-        "redemptions": base_redemptions,
-        "new_clients": base_new_clients,
-        "revenue": revenue,
-        "conversion": round((base_redemptions / base_views) * 100, 1),
+        "views": base_views, "redemptions": base_redemptions, "new_clients": base_new_clients,
+        "revenue": revenue, "conversion": round((base_redemptions / base_views) * 100, 1),
         "roi": round(((revenue - (base_redemptions * avg_check * discount / 100)) / (base_redemptions * avg_check * discount / 100)) * 100, 0)
     }
 
@@ -144,16 +179,29 @@ if not st.session_state.authenticated:
     col_login, _, _ = st.columns([1, 2, 2])
     with col_login:
         user_mode = st.radio("Выберите тип входа:", ["Я клиент", "Я партнер"], horizontal=True, label_visibility="collapsed")
+        
         if user_mode == "Я клиент":
-            st.markdown('<h2 style="text-align:center;color:#002882;">Умная карта ВТБ</h2>', unsafe_allow_html=True)
-            st.markdown("☑️ Я согласен на обработку персональных данных и доступ к информации о транзакциях", unsafe_allow_html=True)
+            st.markdown('<h2 style="text-align:center;color:#002882;margin-bottom:5px;">Умная карта ВТБ</h2>', unsafe_allow_html=True)
+            st.markdown("""
+            <div style="text-align:center; padding: 15px; background: rgba(255,255,255,0.7); border-radius: 12px; margin-bottom: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+            🗺️ Находите на карте выгодные предложения партнёров, подобранные специально для вас.<br/>
+            💳 Экономьте на повседневных покупках с персональными рекомендациями и кешбэком!
+            </div>
+            """, unsafe_allow_html=True)
             with st.form("client_login_form"):
                 st.text_input("Логин", key="username", placeholder="Введите логин")
                 submit = st.form_submit_button("Войти", use_container_width=True)
                 if submit: login_client()
             with st.expander("Демо-доступ"): st.markdown("Логин для Марины: `bubliki`")
+            
         else:
-            st.markdown('<h2 style="text-align:center;color:#002882;">ВТБ - банк для бизнеса</h2>', unsafe_allow_html=True)
+            st.markdown('<h2 style="text-align:center;color:#002882;margin-bottom:5px;">ВТБ для бизнеса</h2>', unsafe_allow_html=True)
+            st.markdown("""
+            <div style="text-align:center; padding: 15px; background: rgba(255,255,255,0.7); border-radius: 12px; margin-bottom: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+            🚀 Привлекайте новых клиентов и увеличивайте выручку с сервисом «Умная карта» от ВТБ.<br/>
+            📊 Запускайте акции, анализируйте эффективность и растите вместе с нами.
+            </div>
+            """, unsafe_allow_html=True)
             with st.form("biz_login_form"):
                 st.text_input("Логин", key="biz_login_field", placeholder="Введите логин")
                 submit = st.form_submit_button("Войти", use_container_width=True)
@@ -167,15 +215,45 @@ if not st.session_state.authenticated:
 # ─── Клиентский интерфейс ───
 if st.session_state.user_type == 'client':
     apply_styles()
+    df = load_transactions()
+    user_shops = set(df['shop'].dropna().unique()) if not df.empty else set()
+    user_cats = set(df['category'].dropna().unique()) if not df.empty else set()
+    
     with st.sidebar:
         st.write("👤 Пользователь: bubliki"); st.markdown("---")
         st.info("Данные обновлены: " + datetime.now().strftime("%d.%m.%Y %H:%M"))
         if st.button("🚪 Выйти", use_container_width=True): logout()
-
-    tab = st.radio(" ", ["🎁 Выгода рядом", "🗺 Мои траты", "🔔 Уведомления"], horizontal=True)
-    df = load_transactions()
+    
+    tab = st.radio("  ", ["🎁 Выгода рядом", "🗺 Мои траты", "🔔 Уведомления"], horizontal=True)
 
     if tab == "🗺 Мои траты":
+        # 💡 Лучшее предложение дня + Потенциальная экономия (ЗАПРОС 4)
+        st.markdown("""
+        <div class="card" style="background: linear-gradient(135deg, #e3f2fd 0%, #ffffff 100%); border-left: 5px solid #0055b8; padding: 20px; margin-bottom: 15px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                <div>
+                    <h3 style="margin:0; color:#002882;">⛽ Лучшее предложение дня: АЗС Shell</h3>
+                    <p style="margin:5px 0; color:#555;">Кешбэк 10% на топливо по карте ВТБ • Набережная реки Волковки, 15Б</p>
+                </div>
+                <span class="badge badge-discount" style="background:#0055b8; font-size:16px; padding:8px 16px;">-10%</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        col_sav1, col_sav2 = st.columns([2, 1])
+        with col_sav1:
+            st.caption("📅 Расчёт за текущий месяц на основе ваших транзакций и активных партнёрских скидок")
+        with col_sav2:
+            # Динамический расчёт потенциальной экономии
+            potential_savings = 0.0
+            if not df.empty and not df['category'].empty:
+                for _, offer in enumerate(load_partners()):
+                    if get_offer_status(offer['valid_until'])[0] != 'expired':
+                        mask = df['category'].str.contains(offer['category'], case=False, na=False)
+                        cat_amount = df[mask]['amount'].sum() if mask.any() else 0
+                        potential_savings += cat_amount * (float(offer['discount_percent']) / 100)
+            st.metric("💰 Потенциальная экономия", f"₽{int(potential_savings):,}")
+
         st.markdown("## 💙 Карта моих трат")
         categories = ["Все"] + list(df["category"].unique()) if not df.empty else ["Все"]
         col1, col2, col3 = st.columns(3)
@@ -208,7 +286,22 @@ if st.session_state.user_type == 'client':
         all_offers = load_partners()
         if all_offers:
             active_offers = [o for o in all_offers if get_offer_status(o['valid_until'])[0] != "expired"]
-            expired_offers = [o for o in all_offers if get_offer_status(o['valid_until'])[0] == "expired"]
+            
+            # Подготовка бейджей
+            for offer in active_offers:
+                is_fav = offer.get('shop') in user_shops
+                is_cat_match = offer.get('category') in user_cats
+                offer['badge_html'] = ""
+                if is_fav:
+                    offer['badge_html'] += '<span class="badge badge-fav">❤️ Любимое место</span>'
+                elif is_cat_match and not is_fav:
+                    # Отмечаем как "новенькое", если ещё не набрали 2
+                    pass
+
+            # Добавляем 2 "новеньких" если нужно, или маркируем первые 2 совпавшие по категории
+            new_candidates = [o for o in active_offers if not o.get('shop') in user_shops and o.get('category') in user_cats]
+            for i, o in enumerate(new_candidates[:2]):
+                o['badge_html'] += '<span class="badge badge-new">✨ Что-то новенькое</span>'
 
             st.markdown(f"### ✅ Активных предложений {len(active_offers)}")
             if active_offers:
@@ -222,13 +315,14 @@ if st.session_state.user_type == 'client':
 
                 for offer in active_offers:
                     status, status_text = get_offer_status(offer['valid_until'])
-                    st.markdown(f"""<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;"><div><b>🏬 {offer['shop']}</b><span class="badge badge-discount">-{offer['discount_percent']}%</span></div><div style="font-size:14px;color:#666;">{status_text}</div></div><div style="margin-top:10px;">🎁 {offer['offer_description']}</div><div style="margin-top:5px;font-size:12px;color:#888;">📍 {offer['address']} | ⏰ До: {offer['valid_until']}</div></div>""", unsafe_allow_html=True)
-
-            if expired_offers:
-                with st.expander(f"🕒 Истёкшие предложения ({len(expired_offers)})"):
-                    for offer in expired_offers:
-                        _, status_text = get_offer_status(offer['valid_until'])
-                        st.markdown(f"""<div class="card"><b>🏬 {offer['shop']}</b> - {offer['discount_percent']}%<br/>{offer['offer_description']}<br/><small style="color:#888;">{status_text}</small></div>""", unsafe_allow_html=True)
+                    st.markdown(f"""<div class="card">
+                    <div style="display:flex;justify-content:space-between;align-items:center; flex-wrap:wrap; gap:8px;">
+                        <div><b>🏬 {offer['shop']}</b> {offer.get('badge_html', '')} <span class="badge badge-discount">-{offer['discount_percent']}%</span></div>
+                        <div style="font-size:14px;color:#666;">{status_text}</div>
+                    </div>
+                    <div style="margin-top:10px;">🎁 {offer['offer_description']}</div>
+                    <div style="margin-top:5px;font-size:12px;color:#888;">📍 {offer['address']} | ⏰ До: {offer['valid_until']}</div>
+                    </div>""", unsafe_allow_html=True)
         else: st.info("📭 В данный момент нет активных предложений")
 
     elif tab == "🔔 Уведомления":
@@ -244,20 +338,6 @@ if st.session_state.user_type == 'client':
             if type_ == "warning": st.warning(f"{icon} {text}")
             elif type_ == "info": st.info(f"{icon} {text}")
             else: st.markdown(f"""<div class="card">{icon} {text}</div>""", unsafe_allow_html=True)
-
-        categories = ["Все"] + list(df["category"].unique()) if not df.empty else ["Все"]
-        col1, col2, col3 = st.columns(3)
-        with col1: category = st.selectbox("Категория трат", categories)
-        with col2: start_date = st.date_input("📅 С", datetime.now() - timedelta(days=30))
-        with col3: end_date = st.date_input("📅 По", datetime.now())
-
-        df_filtered = get_filtered_data(df, category, start_date, end_date)
-        if not df_filtered.empty:
-            st.markdown("### 📊 Итоги периода")
-            col1, col2 = st.columns(2)
-            with col1: st.metric("Траты", f"{int(df_filtered['amount'].sum()):,} ₽")
-            with col2: st.metric("Средний кешбэк (5%)", f"{int(df_filtered['amount'].sum() * 0.05):,} ₽")
-
 # ─── Бизнес-интерфейс ───
 elif st.session_state.user_type == 'business':
     apply_business_styles()
