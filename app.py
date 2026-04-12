@@ -358,20 +358,17 @@ elif st.session_state.user_type == 'business':
         with col3: st.markdown(f"""<div class="metric-card"><div class="metric-label">Транзакций</div><div class="metric-value">{int(summary['transactions']):,}</div><div class="metric-trend">↑ 12% за месяц</div></div>""", unsafe_allow_html=True)
         with col4: st.markdown(f"""<div class="metric-card"><div class="metric-label">Средний чек</div><div class="metric-value">₽{int(summary['avg_check']):,}</div><div class="metric-trend">↑ 5% за месяц</div></div>""", unsafe_allow_html=True)
 
-        # 💡 Блок выгоды от партнёрства с банком (ЗАПРОС 2)
         st.markdown("---")
-        st.markdown("### 💡 Ваша выгода от сотрудничества с ВТБ")
+        st.markdown("### 💡 Выгода от сотрудничества с ВТБ")
         bank_metrics = {
             "🤝 Клиентов привлечено через ВТБ": f"{int(summary['new_clients'] * 0.68):,}",
-            "💳 Выплачено кешбэка клиентам": f"₽{int(summary['revenue'] * 0.04):,}",
-            "📈 Рост среднего чека по акциям": "+18.4%",
+            "📈 Рост среднего чека": "+18.4%",
             "📉 Экономия на внешней рекламе": f"₽{int(summary['revenue'] * 0.12):,}",
-            "🔄 Возвратность клиентов (LTV)": "72%",
-            "🏆 Позиция в рейтинге партнёров": "Top 12%"
+            "🔄 Возвратность клиентов": "72%",
         }
-        cols_bm = st.columns(3)
+        cols_bm = st.columns(2)
         for i, (label, value) in enumerate(bank_metrics.items()):
-            with cols_bm[i % 3]:
+            with cols_bm[i % 2]:
                 st.markdown(f"""<div class="card" style="text-align:center; border-left: 4px solid #0055b8;">
                 <div style="font-size:14px; color:#666; margin-bottom:5px;">{label}</div>
                 <div style="font-size:20px; font-weight:bold; color:#002882;">{value}</div>
@@ -399,14 +396,14 @@ elif st.session_state.user_type == 'business':
         st.markdown('<div class="header-gradient"><h2 style="margin:0;">Управление предложениями</h2><p style="margin:5px 0 0 0;">Создание, редактирование и аналитика эффективности</p></div>', unsafe_allow_html=True)
         
         # ЗАПРОС 1: Форма создания/редактирования
-        with st.expander("➕ Создать / ✏️ Редактировать предложение", expanded=st.session_state.editing_offer_id is not None):
+        with st.expander("➕ Создать предложение", expanded=st.session_state.editing_offer_id is not None):
             editing_id = st.session_state.editing_offer_id
             current = next((o for o in st.session_state.biz_offers if o['id'] == editing_id), {}) if editing_id else {}
             
             with st.form("offer_form"):
                 c1, c2 = st.columns(2)
                 title = c1.text_input("Название акции", value=current.get("title", ""))
-                category = c2.selectbox("Категория", ["Напитки", "Еда", "Обеды", "Завтраки", "Розница", "Услуги"], index=0 if not current else ["Напитки", "Еда", "Обеды", "Завтраки", "Розница", "Услуги"].index(current.get("category", "Еда")) if current.get("category") in ["Напитки", "Еда", "Обеды", "Завтраки", "Розница", "Услуги"] else 0)
+                category = c2.selectbox("Категория", ["Напитки", "Еда", "Обеды", "Завтраки", "Услуги"], index=0 if not current else ["Напитки", "Еда", "Обеды", "Завтраки", "Услуги"].index(current.get("category", "Еда")) if current.get("category") in ["Напитки", "Еда", "Обеды", "Завтраки", "Услуги"] else 0)
                 
                 desc = st.text_area("Описание", value=current.get("description", ""))
                 d1, d2, d3 = st.columns(3)
@@ -438,7 +435,7 @@ elif st.session_state.user_type == 'business':
                     st.success("✅ Предложение сохранено!")
                     st.rerun()
 
-        st.markdown("### 📊 Ваши активные предложения и их эффективность")
+        st.markdown("###Ваши активные предложения и их эффективность")
         offers = [o for o in st.session_state.biz_offers if o.get("is_active", False)]
         
         if not offers:
