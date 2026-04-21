@@ -201,7 +201,7 @@ if not st.session_state.authenticated:
     apply_business_styles()
     col_login, _, _ = st.columns([1, 2, 2])
     with col_login:
-        user_mode = st.radio("Выберите тип входа:", ["Я клиент", "Я партнер"], horizontal=True, label_visibility="collapsed")
+        user_mode = st.radio("Выберите тип входа:", ["Для клиента", "Для бизнеса"], horizontal=True, label_visibility="collapsed")
         
         if user_mode == "Я клиент":
             st.markdown('<h2 style="text-align:center;color:#002882;margin-bottom:5px;">Умная карта ВТБ</h2>', unsafe_allow_html=True)
@@ -378,12 +378,12 @@ elif st.session_state.user_type == 'business':
     with st.sidebar:
         st.markdown(f"""☕ {summary['business_name']} Средний бизнес ⭐ {summary['rating']} ({summary['total_reviews']} отзывов)""", unsafe_allow_html=True)
         st.markdown("---")
-        menu = st.radio("Меню", ["Дашборд", "Предложения", "Отзывы", "Уведомления"], label_visibility="collapsed")
+        menu = st.radio("Меню", ["Дашборд", "Предложения", "Отзывы", "Уведомления"], key="biz_menu", label_visibility="collapsed")
         st.markdown("---")
         st.caption(f"{datetime.now().strftime('%d.%m.%Y %H:%M')}")
         if st.button("🚪 Выйти", use_container_width=True): logout()
 
-    if menu == "Дашборд":
+    if menu.strip() == "Дашборд":
         st.markdown('<div class="header-gradient"><h2 style="margin:0;">Панель управления</h2><p style="margin:5px 0 0 0;">Обзор показателей за 30 дней</p></div>', unsafe_allow_html=True)
         
         # Основные метрики
@@ -427,7 +427,7 @@ elif st.session_state.user_type == 'business':
                 fig.update_layout(margin=dict(t=20,l=20,r=20,b=20), plot_bgcolor='rgba(0,0,0,0)')
                 st.plotly_chart(fig, use_container_width=True)
 
-    elif menu == "Предложения":
+    elif menu.strip() == "Предложения":
         st.markdown('<div class="header-gradient"><h2 style="margin:0;">Управление предложениями</h2><p style="margin:5px 0 0 0;">Создание, редактирование и аналитика эффективности</p></div>', unsafe_allow_html=True)
         
         with st.expander("➕ Создать / ✏️ Редактировать предложение", expanded=st.session_state.editing_offer_id is not None):
@@ -523,14 +523,14 @@ elif st.session_state.user_type == 'business':
                     st.button("✏️", key=f"edit_{offer['id']}", help="Редактировать", use_container_width=True, on_click=lambda oid=offer['id']: setattr(st.session_state, 'editing_offer_id', oid))
                     st.button("🗑", key=f"del_{offer['id']}", help="Удалить", use_container_width=True, on_click=lambda oid=offer['id']: setattr(st.session_state, 'biz_offers', [o for o in st.session_state.biz_offers if o['id'] != oid]))
 
-    elif menu == "Отзывы":
+    elif menu.strip() == "Отзывы":
         st.markdown('<div class="header-gradient"><h2 style="margin:0;">⭐ Отзывы клиентов</h2><p style="margin:5px 0 0 0;">Рейтинг и обратная связь</p></div>', unsafe_allow_html=True)
         reviews = get_business_reviews(limit=10)
         for review in reviews:
             stars = "⭐ " * review['rating'] + "☆ " * (5 - review['rating'])
             st.markdown(f"""<div class="review-card"><div style="display:flex;justify-content:space-between;"><div><div class="star-rating">{stars}</div><b>{review['client_name']}</b><div style="font-size:13px;color:#888;">{str(review['created_at'])[:10]}</div></div></div><p style="margin:10px 0;">{review['comment']}</p></div>""", unsafe_allow_html=True)
 
-    elif menu == "Уведомления":
+    elif menu.strip() == "Уведомления":
         st.markdown('<div class="header-gradient"><h2 style="margin:0;">🔔 Уведомления</h2><p style="margin:5px 0 0 0;">Важные сообщения от ВТБ</p></div>', unsafe_allow_html=True)
         notifications = get_business_notifications()
         for notif in notifications:
