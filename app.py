@@ -383,7 +383,7 @@ elif st.session_state.user_type == 'business':
         if st.button("🚪 Выйти", key="biz_logout_top", use_container_width=True): logout()
     st.markdown("---")
     
-    tab1, tab2, tab3, tab4 = st.tabs(["📊 Дашборд", "🎁 Предложения", "⭐ Отзывы", "🔔 Уведомления"])
+    tab1, tab2, tab3, tab4 = st.tabs(["Дашборд", "Предложения", "Отзывы", "Уведомления"])
     
     with tab1:
         st.markdown('<div class="header-gradient"><h2 style="margin:0;">Панель управления</h2><p style="margin:5px 0 0 0;">Обзор показателей за 30 дней</p></div>', unsafe_allow_html=True)
