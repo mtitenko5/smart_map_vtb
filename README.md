@@ -63,6 +63,7 @@ smart_map_vtb/
 ├── README.md                   # Документация│
 
 ├── data (CSV-файлы):
+
 │   ├── client_transactions.csv # История трат клиента
 
 │   ├── client_parthers.csv     # Предложения партнёров
