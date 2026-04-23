@@ -240,7 +240,7 @@ if st.session_state.user_type == 'client':
     user_shops = set(df['shop'].dropna().unique()) if not df.empty else set()
     user_cats = set(df['category'].dropna().unique()) if not df.empty else set()
 
-    col_c1, col_c2 = st.columns([2, 2, 1])
+    col_c1, col_c2 = st.columns([2, 1])
     with col_c1: st.markdown("**Пользователь: bubliki**")
     with col_c2:
         if st.button("🚪 Выйти", key="client_logout_top", use_container_width=True): logout()
