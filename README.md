@@ -64,21 +64,19 @@ smart_map_vtb/
 
 ├──schema-of-project.png   #Схема работы сервиса 
 
-├── data (CSV-файлы):
+├── client_transactions.csv # История трат клиента
 
-│   ├── client_transactions.csv # История трат клиента
+├── client_parthers.csv     # Предложения партнёров
 
-│   ├── client_parthers.csv     # Предложения партнёров
+├── business_users.csv      # Данные бизнес-аккаунтов
 
-│   ├── business_users.csv      # Данные бизнес-аккаунтов
+├── business_offers.csv     # Предложения бизнеса
 
-│   ├── business_offers.csv     # Предложения бизнеса
+├── business_metrics.csv    # Метрики (выручка, клиенты)
 
-│   ├── business_metrics.csv    # Метрики (выручка, клиенты)
+├── business_reviews.csv    # Отзывы клиентов
 
-│   ├── business_reviews.csv    # Отзывы клиентов
-
-│   └── notifications.csv       # Уведомления для бизнеса
+└── notifications.csv       # Уведомления для бизнеса
 
 ### Основные экраны
 **Для клиента:**
