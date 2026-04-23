@@ -60,7 +60,9 @@ smart_map_vtb/
 
 ├── requirements.txt            # Зависимости Python
 
-├── README.md                   # Документация│
+├── README.md                   # Документация
+
+├──schema-of-project.png   #Схема работы сервиса 
 
 ├── data (CSV-файлы):
 
