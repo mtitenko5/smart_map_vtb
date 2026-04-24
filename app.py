@@ -319,16 +319,18 @@ if st.session_state.user_type == 'client':
             # Подготовка бейджей
             for offer in active_offers:
                 is_fav = offer.get('shop') in user_shops
+                is_cat_match = offer.get('category') in user_cats
                 offer['badge_html'] = ""
                 if is_fav:
                     offer['badge_html'] += '<span class="badge badge-fav">❤️ Любимое место</span>'
-                else:
+                elif is_cat_match and not is_fav:
                     pass
 
             # Добавляем 2 "новеньких" если нужно, или маркируем первые 2 совпавшие по категории
-            new_candidates = [o for o in active_offers if not o.get('shop') in user_shops and o.get('category') in user_cats and not o.get('badge_html')]
+            new_candidates = [o for o in active_offers if not o.get('shop') in user_shops and o.get('category') in user_cats]
             for i, o in enumerate(new_candidates[:2]):
                 o['badge_html'] += '<span class="badge badge-new">✨ Что-то новенькое</span>'
+
             
             st.markdown(f"### ✅ Активных предложений {len(active_offers)}")
             if active_offers:
