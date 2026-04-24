@@ -377,7 +377,7 @@ elif st.session_state.user_type == 'business':
     summary = get_business_summary()
     
     col_b1, col_b2, col_b3 = st.columns([3, 2, 1])
-    with col_b1: st.markdown(f"☕ **{summary['business_name']}** | Средний бизнес | ⭐ {summary['rating']} ({summary['total_reviews']} отзывов)")
+    with col_b1: st.markdown(f"☕ **{summary['business_name']}** | Малый бизнес | ⭐ {summary['rating']} ({summary['total_reviews']} отзывов)")
     with col_b2: st.caption(f"🕒 Обновлено: {datetime.now().strftime('%d.%m.%Y %H:%M')}")
     with col_b3:
         if st.button("🚪 Выйти", key="biz_logout_top", use_container_width=True): logout()
