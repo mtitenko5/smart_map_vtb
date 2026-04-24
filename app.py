@@ -331,7 +331,7 @@ if st.session_state.user_type == 'client':
             new_candidates = [o for o in active_offers if not o.get('shop') in user_shops and o.get('category') in user_cats]
             for i, o in enumerate(new_candidates[:2]):
                 o['badge_html'] += '<span class="badge badge-new">✨ Что-то новенькое</span>'
-
+            
             st.markdown(f"### ✅ Активных предложений {len(active_offers)}")
             if active_offers:
                 df_offers = pd.DataFrame(active_offers)
