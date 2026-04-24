@@ -926,7 +926,7 @@ elif st.session_state.user_type == "business":
     col_b1, col_b2, col_b3 = st.columns([3, 2, 1])
     with col_b1:
         st.markdown(
-            f"☕ **{summary['business_name']}** | Средний бизнес | ⭐ {summary['rating']} ({summary['total_reviews']} отзывов)"
+            f"☕ **{summary['business_name']}** | Малый бизнес | ⭐ {summary['rating']} ({summary['total_reviews']} отзывов)"
         )
     with col_b2:
         st.caption(f"🕒 Обновлено: {datetime.now().strftime('%d.%m.%Y %H:%M')}")
