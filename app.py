@@ -322,7 +322,7 @@ if st.session_state.user_type == 'client':
                 offer['badge_html'] = ""
                 if is_fav:
                     offer['badge_html'] += '<span class="badge badge-fav">❤️ Любимое место</span>'
-                else not is_fav:
+                else:
                     pass
 
             # Добавляем 2 "новеньких" если нужно, или маркируем первые 2 совпавшие по категории
