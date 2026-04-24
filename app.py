@@ -1001,35 +1001,20 @@ elif st.session_state.user_type == "business":
         st.markdown("---")
         col_chart1, col_chart2 = st.columns(2)
         with col_chart1:
-            st.markdown(f"### Выручка по дням ({period_label})")
-            if not current_df.empty:
-                fig = px.line(current_df, x="date", y="revenue", markers=True, line_shape="spline")
-                fig.update_layout(
-                    xaxis_title="Дата",
-                    yaxis_title="Выручка, руб.",
-                    margin=dict(t=20, l=20, r=20, b=20),
-                    plot_bgcolor="rgba(0,0,0,0)",
-                )
+            st.markdown("### Выручка по дням")
+            metrics = get_business_metrics(days=30)
+            if metrics:
+                df_m = pd.DataFrame(metrics); df_m['date'] = pd.to_datetime(df_m['date'])
+                fig = px.line(df_m, x='date', y='revenue', markers=True, line_shape='spline')
+                fig.update_layout(xaxis_title='Дата', yaxis_title='Выручка, руб.', margin=dict(t=20,l=20,r=20,b=20), plot_bgcolor='rgba(0,0,0,0)')
                 st.plotly_chart(fig, use_container_width=True)
-            else:
-                st.info("Недостаточно данных для графика")
         with col_chart2:
-            st.markdown(f"### Клиенты ({period_label})")
-            if not current_df.empty:
-                fig = px.bar(
-                    current_df,
-                    x="date",
-                    y=["new_clients", "repeat_clients"],
-                    labels={"value": "Клиенты", "variable": "Тип"},
-                    barmode="stack",
-                )
-                fig.update_layout(
-                    margin=dict(t=20, l=20, r=20, b=20),
-                    plot_bgcolor="rgba(0,0,0,0)",
-                )
+            st.markdown("### Клиенты")
+            if metrics:
+                df_m = pd.DataFrame(metrics); df_m['date'] = pd.to_datetime(df_m['date'])
+                fig = px.bar(df_m, x='date', y=['new_clients', 'repeat_clients'], labels={'value': 'Клиенты', 'variable': 'Тип'}, barmode='stack')
+                fig.update_layout(margin=dict(t=20,l=20,r=20,b=20), plot_bgcolor='rgba(0,0,0,0)')
                 st.plotly_chart(fig, use_container_width=True)
-            else:
-                st.info("Недостаточно данных для графика")
 
     with tab2:
         st.markdown(
