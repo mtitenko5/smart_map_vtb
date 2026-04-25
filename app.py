@@ -2391,4 +2391,4 @@ elif st.session_state.user_type == "business":
                 st.warning(f"⚠️ **{notif['title']}**: {notif['message']}")
             else:
                 st.info(f"ℹ️ **{notif['title']}**: {notif['message']}")
->>>>>>> 87e17cef35959e04736f02ca36fe756340a813eb
+#>>>>>>> 87e17cef35959e04736f02ca36fe756340a813eb
